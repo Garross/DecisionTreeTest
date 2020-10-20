@@ -5,14 +5,13 @@ Data <- read.csv("DT-Credit.csv", header=TRUE, sep= ";")
 #Remove index row
 Data <- Data[,-1]
 str(Data) 
-attach(Data)
+
 install.packages("rpart")
 library(rpart)
 
 install.packages ("partykit") 
 library("partykit") 
-plot(as.party(DT_Model)) 
-str(Data)
+
 #Change discrete/binary data to factors
 cols <- c(1, 3:9, 11:21, 23:31)
 Data[cols] <- lapply(Data[cols],factor)
@@ -41,7 +40,8 @@ Train <- subset(Data,mysplit==T)
 Test <- subset(Data,mysplit==F)
 
 #Check Split
-Train
+
+#Train
 
 
 
@@ -62,18 +62,47 @@ testModelAccuracy <- function(minSplit, minBucket, maxDepth) {
   
   #Proportion of correct answers over total answers.
   baseAccuracy <- (trueNeg+truePos)/sum(confusionMatrix)
-  print(paste("maxDepth: ", maxDepth))
-  print(paste("baseAccuracy: ", baseAccuracy))
-  plot(as.party(DT_Model2))
+  #print(paste("maxDepth: ", maxDepth))
+  #print(paste("minBucket: ", minBucket))
+  #print(paste("minSplit: ", minSplit))
+  #print(paste("baseAccuracy: ", baseAccuracy))
+  
+  return(baseAccuracy)
+  
 }
 
-#Will only be adjusting maxDepth for now, other parameters can also be experimented with.
+#Will be adjusting all 3 parameters using a truly beautiful triple for loop. :'(
+bestAccuracy =0
+bestMinSplit =0
+bestMinBucket =0
+bestMaxDepth =0
 
-for(maxDepth in 1:10){
-  testModelAccuracy(60,30,maxDepth)
+for(minSplit in 1:20){
+  for(minBucket in 1:20){
+    for(maxDepth in 1:8){
+      accuracy <- testModelAccuracy(minSplit*5,minBucket*5,maxDepth)
+      
+      if(accuracy > bestAccuracy){
+        bestAccuracy = accuracy
+        bestMinSplit = minSplit*5
+        bestMinBucket = minBucket*5
+        bestMaxDepth = maxDepth
+        print(paste("bestMaxDepth: ", bestMaxDepth))
+        print(paste("bestMinBucket: ", bestMinBucket))
+        print(paste("bestMinSplit: ", bestMinSplit))
+        print(paste("bestAccuracy: ", bestAccuracy))
+      }
+    }
+  }
 }
 
-#Using visual inspection we can deduce that tree Depth does not increase past 6.
-#Maximum accuracy tends to fluctuate between a depth of 5/6 depending on training/test data.
-#Regardless improvements are marginal and we remain around 74%. 
 
+
+#[1] "bestMaxDepth:  3"
+#[1] "bestMinBucket:  45"
+#[1] "bestMinSplit:  5"
+#[1] "bestAccuracy:  0.752112676056338"
+
+DT_Model<-rpart(Target~., data=Data, control=rpart.control(minsplit=5, minbucket=45, maxdepth=3 ))
+plot(as.party(DT_Model))
+print(DT_Model)
